@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 // Vite configuration with proxy to Node.js Express backend
 export default defineConfig({
+  base: './',
   plugins: [react()],
   server: {
     port: 3000,
