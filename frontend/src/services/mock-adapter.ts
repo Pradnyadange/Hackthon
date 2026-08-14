@@ -5,16 +5,42 @@ export const handleMockApiRequest = (url: string, method: string, data?: any): a
 
   // Auth Endpoints
   if (normalizedUrl === '/auth/login' || normalizedUrl === '/auth/login-passcode') {
+    let role = 'SCHOOL_ADMIN';
+    let name = 'Principal Ramesh Verma';
+    if (data?.email === 'admin@school.com') {
+      role = 'SUPER_ADMIN';
+      name = 'Dr. Evelyn Carter';
+    } else if (data?.email === 'teacher@school.com') {
+      role = 'TEACHER';
+      name = 'Rahul Sharma';
+    }
+
+    const userData = {
+      id: 'u-demo',
+      email: data?.email || 'schooladmin@school.com',
+      name,
+      role,
+      securityPasscode: 'ADM-448102'
+    };
+
+    localStorage.setItem('edumatrix_mock_user', JSON.stringify(userData));
+
     return {
       token: 'mock_jwt_token_demo_2026',
-      user: {
-        id: 'u-admin',
-        email: data?.email || 'schooladmin@school.com',
-        name: 'Principal Ramesh Verma',
-        role: 'SCHOOL_ADMIN',
-        securityPasscode: 'ADM-448102'
-      }
+      user: userData
     };
+  }
+
+  if (normalizedUrl === '/auth/me') {
+    const savedUser = localStorage.getItem('edumatrix_mock_user');
+    const user = savedUser ? JSON.parse(savedUser) : {
+      id: 'u-admin',
+      email: 'schooladmin@school.com',
+      name: 'Principal Ramesh Verma',
+      role: 'SCHOOL_ADMIN',
+      securityPasscode: 'ADM-448102'
+    };
+    return { user };
   }
 
   // Dashboard Stats
