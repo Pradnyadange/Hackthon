@@ -1,0 +1,190 @@
+// Prisma Schema for EduMatrix AI School Operations Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String     @id @default(uuid())
+  name             String
+  email            String     @unique
+  passwordHash     String
+  securityPasscode String?    @unique // Unique Secret Admin Access Passcode
+  role             String     // SUPER_ADMIN, SCHOOL_ADMIN, TEACHER
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  teacher      Teacher?
+  documents    Document[]
+  notifications Notification[]
+}
+
+model Student {
+  id               String       @id @default(uuid())
+  studentId        String       @unique
+  firstName        String
+  lastName         String
+  dateOfBirth      String
+  gender           String
+  classId          String
+  division         String
+  rollNumber       String
+  parentName       String
+  parentPhone      String
+  email            String?
+  address          String
+  admissionDate    String
+  emergencyContact String
+  profilePhoto     String?
+  status           String       @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  class            Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  attendances      Attendance[]
+
+  @@unique([classId, rollNumber])
+}
+
+model Teacher {
+  id           String            @id @default(uuid())
+  teacherId    String            @unique
+  name         String
+  email        String            @unique
+  phone        String
+  department   String
+  subjects     String            // Comma separated subject codes/names
+  qualifications String
+  joiningDate  String
+  availability String            // JSON representation of working days & period slots
+  status       String            @default("ACTIVE")
+  userId       String?           @unique
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user         User?             @relation(fields: [userId], references: [id])
+  classes      Class[]           @relation("ClassTeacher")
+  timetableEntries TimetableEntry[]
+}
+
+model Class {
+  id             String           @id @default(uuid())
+  grade          String           // e.g. "10"
+  division       String           // e.g. "A"
+  academicYear   String           // e.g. "2026-2027"
+  classTeacherId String?
+  roomId         String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  classTeacher   Teacher?         @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  room           Room?            @relation(fields: [roomId], references: [id])
+  students       Student[]
+  timetableEntries TimetableEntry[]
+  attendances    Attendance[]
+}
+
+model Subject {
+  id            String           @id @default(uuid())
+  name          String
+  code          String           @unique
+  weeklyPeriods Int              @default(5)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  timetableEntries TimetableEntry[]
+}
+
+model Room {
+  id                 String           @id @default(uuid())
+  roomNumber         String           @unique
+  roomName           String
+  capacity           Int
+  type               String           // Classroom, Laboratory, Computer Lab, Auditorium, Library, Sports Room
+  availableEquipment String           // Comma separated equipment
+  availability       String           @default("AVAILABLE")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  classes            Class[]
+  timetableEntries   TimetableEntry[]
+}
+
+model TimetableEntry {
+  id        String   @id @default(uuid())
+  classId   String
+  subjectId String
+  teacherId String
+  roomId    String
+  day       String   // MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY
+  period    Int      // 1 to 8
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model Attendance {
+  id        String   @id @default(uuid())
+  studentId String
+  classId   String
+  date      String   // YYYY-MM-DD
+  status    String   // PRESENT, ABSENT, LATE, EXCUSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id               String   @id @default(uuid())
+  fileName         String
+  fileUrl          String
+  type             String   // STUDENT_ADMISSION, TEACHER_FORM, ATTENDANCE_SHEET, REGISTRATION
+  uploadedById     String
+  uploadDate       DateTime @default(now())
+  processingStatus String   // PENDING, PROCESSED, FAILED
+  extractedData    String   // JSON string of extracted fields
+  confidence       Float    @default(0.95)
+  verificationStatus String @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  uploadedBy       User     @relation(fields: [uploadedById], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // TIMETABLE_CONFLICT, ATTENDANCE_WARNING, DOCUMENT_VERIFICATION, STAFF_SHORTAGE, SYSTEM
+  severity  String   // HIGH, MEDIUM, LOW
+  read      Boolean  @default(false)
+  relatedEntity String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SystemAlert {
+  id          String   @id @default(uuid())
+  type        String   // TEACHER_CONFLICT, ROOM_CONFLICT, LOW_ATTENDANCE, PENDING_DOCUMENT, MISSING_TEACHER, TIMETABLE_ISSUE
+  severity    String   // HIGH, MEDIUM, LOW
+  title       String
+  description String
+  relatedEntity String? // Route or entity reference
+  actionLabel String   // e.g. "Resolve Conflict"
+  actionUrl   String   // e.g. "/timetable"
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
