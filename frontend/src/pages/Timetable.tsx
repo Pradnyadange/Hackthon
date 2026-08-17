@@ -72,11 +72,12 @@ export const TimetablePage: React.FC = () => {
         await api.put(`/timetable/${slotData.id}`, slotData);
         showToast('Timetable period slot updated persistently!', 'success');
       } else {
-        await api.post('/timetable/generate', slotData);
+        await api.post('/timetable', slotData);
+        showToast('New timetable period slot added successfully!', 'success');
       }
       await fetchTimetableData();
     } catch (err: any) {
-      showToast('Failed to update timetable slot', 'error');
+      showToast(err.message || 'Failed to update timetable slot', 'error');
     }
   };
 

@@ -109,6 +109,7 @@ router.delete('/rooms/:id', authenticateToken, authorizeRoles('SUPER_ADMIN'), Ro
 
 // --- Timetable Routes ---
 router.get('/timetable', authenticateToken, TimetableController.getAll);
+router.post('/timetable', authenticateToken, authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), TimetableController.create);
 router.post('/timetable/generate', authenticateToken, authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), TimetableController.generate);
 router.post('/timetable/simulate-conflict', authenticateToken, TimetableController.simulateConflict);
 router.post('/timetable/validate', authenticateToken, TimetableController.validate);

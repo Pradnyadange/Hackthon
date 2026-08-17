@@ -1,7 +1,94 @@
 // Client-side mock data adapter for standalone static deployment (e.g. GitHub Pages)
 
+const subjectsList = [
+  { id: 'sub-math', name: 'Mathematics', code: 'MATH-101', weeklyPeriods: 6 },
+  { id: 'sub-phy', name: 'Physics', code: 'PHY-101', weeklyPeriods: 5 },
+  { id: 'sub-chem', name: 'Chemistry', code: 'CHEM-101', weeklyPeriods: 5 },
+  { id: 'sub-eng', name: 'English Literature', code: 'ENG-101', weeklyPeriods: 4 },
+  { id: 'sub-cs', name: 'Computer Science', code: 'CS-101', weeklyPeriods: 4 },
+  { id: 'sub-bio', name: 'Biology', code: 'BIO-101', weeklyPeriods: 4 }
+];
+
+const teachersList = [
+  { id: 'tch-1', name: 'Rahul Sharma', email: 'rahul.sharma@school.com', department: 'Mathematics', subjects: 'Mathematics' },
+  { id: 'tch-2', name: 'Sunita Verma', email: 'sunita.verma@school.com', department: 'Physics', subjects: 'Physics' },
+  { id: 'tch-3', name: 'Dr. Rajesh Gupta', email: 'rajesh.gupta@school.com', department: 'Chemistry', subjects: 'Chemistry' },
+  { id: 'tch-4', name: 'Anita Roy', email: 'anita.roy@school.com', department: 'English', subjects: 'English' },
+  { id: 'tch-5', name: 'Vikramaditya Rao', email: 'vikram.rao@school.com', department: 'Computer Science', subjects: 'Computer Science' },
+  { id: 'tch-6', name: 'Priya Nair', email: 'priya.nair@school.com', department: 'Biology', subjects: 'Biology' }
+];
+
+const roomsList = [
+  { id: 'rm-101', roomNumber: '101', roomName: 'Classroom 101', capacity: 40, type: 'Classroom', availableEquipment: 'Projector, Whiteboard' },
+  { id: 'rm-102', roomNumber: '102', roomName: 'Classroom 102', capacity: 40, type: 'Classroom', availableEquipment: 'Whiteboard' },
+  { id: 'rm-201', roomNumber: '201', roomName: 'Physics Lab', capacity: 35, type: 'Laboratory', availableEquipment: 'Lab Benches, Optics Equipment' },
+  { id: 'rm-202', roomNumber: '202', roomName: 'Computer Lab', capacity: 45, type: 'Computer Lab', availableEquipment: '50 Computers, Smart Board' }
+];
+
+const classesList = [
+  { id: 'cls-10a', grade: '10', division: 'A', academicYear: '2026-2027', roomId: 'rm-101' },
+  { id: 'cls-10b', grade: '10', division: 'B', academicYear: '2026-2027', roomId: 'rm-102' },
+  { id: 'cls-9a', grade: '9', division: 'A', academicYear: '2026-2027', roomId: 'rm-103' },
+  { id: 'cls-9b', grade: '9', division: 'B', academicYear: '2026-2027', roomId: 'rm-104' },
+  { id: 'cls-11a', grade: '11', division: 'A', academicYear: '2026-2027', roomId: 'rm-105' }
+];
+
+const generateDefaultTimetables = () => {
+  const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+  const periods = [1, 2, 3, 4, 5, 6];
+  const entries: any[] = [];
+  let idCount = 1;
+
+  classesList.forEach((cls, classIdx) => {
+    days.forEach((day, dayIdx) => {
+      periods.forEach((period) => {
+        const subIdx = (classIdx * 2 + dayIdx + period) % subjectsList.length;
+        const tchIdx = (classIdx * 2 + dayIdx + period) % teachersList.length;
+        const rmIdx = (classIdx + period) % roomsList.length;
+
+        entries.push({
+          id: `tt-${idCount++}`,
+          classId: cls.id,
+          subjectId: subjectsList[subIdx].id,
+          teacherId: teachersList[tchIdx].id,
+          roomId: roomsList[rmIdx].id,
+          day,
+          period,
+          subject: subjectsList[subIdx],
+          teacher: teachersList[tchIdx],
+          room: roomsList[rmIdx]
+        });
+      });
+    });
+  });
+
+  return entries;
+};
+
+const getStoredTimetable = () => {
+  const stored = localStorage.getItem('edumatrix_mock_timetable');
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      // fallback
+    }
+  }
+  const initial = generateDefaultTimetables();
+  localStorage.setItem('edumatrix_mock_timetable', JSON.stringify(initial));
+  return initial;
+};
+
+const saveStoredTimetable = (entries: any[]) => {
+  localStorage.setItem('edumatrix_mock_timetable', JSON.stringify(entries));
+};
+
 export const handleMockApiRequest = (url: string, method: string, data?: any): any => {
-  const normalizedUrl = url.replace('/api', '').split('?')[0];
+  const rawUrl = url.replace('/api', '');
+  const urlParts = rawUrl.split('?');
+  const normalizedUrl = urlParts[0];
+
+  const queryParams = new URLSearchParams(urlParts[1] || '');
 
   // Auth Endpoints
   if (normalizedUrl === '/auth/login' || normalizedUrl === '/auth/login-passcode') {
@@ -59,69 +146,102 @@ export const handleMockApiRequest = (url: string, method: string, data?: any): a
 
   // Classes
   if (normalizedUrl === '/classes') {
-    return [
-      { id: 'cls-10a', grade: '10', division: 'A', academicYear: '2026-2027', roomId: 'rm-101' },
-      { id: 'cls-10b', grade: '10', division: 'B', academicYear: '2026-2027', roomId: 'rm-102' },
-      { id: 'cls-9a', grade: '9', division: 'A', academicYear: '2026-2027', roomId: 'rm-103' },
-      { id: 'cls-9b', grade: '9', division: 'B', academicYear: '2026-2027', roomId: 'rm-104' },
-      { id: 'cls-11a', grade: '11', division: 'A', academicYear: '2026-2027', roomId: 'rm-105' }
-    ];
+    return classesList;
   }
 
   // Subjects
   if (normalizedUrl === '/subjects') {
-    return [
-      { id: 'sub-math', name: 'Mathematics', code: 'MATH-101', weeklyPeriods: 6 },
-      { id: 'sub-phy', name: 'Physics', code: 'PHY-101', weeklyPeriods: 5 },
-      { id: 'sub-chem', name: 'Chemistry', code: 'CHEM-101', weeklyPeriods: 5 },
-      { id: 'sub-eng', name: 'English Literature', code: 'ENG-101', weeklyPeriods: 4 },
-      { id: 'sub-cs', name: 'Computer Science', code: 'CS-101', weeklyPeriods: 4 },
-      { id: 'sub-bio', name: 'Biology', code: 'BIO-101', weeklyPeriods: 4 }
-    ];
+    return subjectsList;
   }
 
   // Teachers
   if (normalizedUrl === '/teachers') {
-    return [
-      { id: 'tch-1', name: 'Rahul Sharma', email: 'rahul.sharma@school.com', department: 'Mathematics', subjects: 'Mathematics' },
-      { id: 'tch-2', name: 'Sunita Verma', email: 'sunita.verma@school.com', department: 'Physics', subjects: 'Physics' },
-      { id: 'tch-3', name: 'Dr. Rajesh Gupta', email: 'rajesh.gupta@school.com', department: 'Chemistry', subjects: 'Chemistry' },
-      { id: 'tch-4', name: 'Anita Roy', email: 'anita.roy@school.com', department: 'English', subjects: 'English' },
-      { id: 'tch-5', name: 'Vikramaditya Rao', email: 'vikram.rao@school.com', department: 'Computer Science', subjects: 'Computer Science' },
-      { id: 'tch-6', name: 'Priya Nair', email: 'priya.nair@school.com', department: 'Biology', subjects: 'Biology' }
-    ];
+    return teachersList;
   }
 
   // Rooms
   if (normalizedUrl === '/rooms') {
-    return [
-      { id: 'rm-101', roomNumber: '101', roomName: 'Classroom 101', capacity: 40, type: 'Classroom', availableEquipment: 'Projector, Whiteboard' },
-      { id: 'rm-102', roomNumber: '102', roomName: 'Classroom 102', capacity: 40, type: 'Classroom', availableEquipment: 'Whiteboard' },
-      { id: 'rm-201', roomNumber: '201', roomName: 'Physics Lab', capacity: 35, type: 'Laboratory', availableEquipment: 'Lab Benches, Optics Equipment' },
-      { id: 'rm-202', roomNumber: '202', roomName: 'Computer Lab', capacity: 45, type: 'Computer Lab', availableEquipment: '50 Computers, Smart Board' }
-    ];
+    return roomsList;
   }
 
-  // Timetable
+  // Timetable Endpoints
   if (normalizedUrl === '/timetable') {
+    let allEntries = getStoredTimetable();
+    const classIdParam = queryParams.get('classId');
+
+    if (method === 'POST') {
+      const { classId, day, period, subjectId, teacherId, roomId } = data || {};
+      const subject = subjectsList.find(s => s.id === subjectId) || subjectsList[0];
+      const teacher = teachersList.find(t => t.id === teacherId) || teachersList[0];
+      const room = roomsList.find(r => r.id === roomId) || roomsList[0];
+
+      // Remove existing entry at same classId, day, period
+      allEntries = allEntries.filter((e: any) => !(e.classId === classId && e.day === day && Number(e.period) === Number(period)));
+
+      const newEntry = {
+        id: `tt-user-${Date.now()}`,
+        classId,
+        subjectId,
+        teacherId,
+        roomId,
+        day,
+        period: Number(period),
+        subject,
+        teacher,
+        room
+      };
+
+      allEntries.push(newEntry);
+      saveStoredTimetable(allEntries);
+      return newEntry;
+    }
+
+    if (classIdParam) {
+      allEntries = allEntries.filter((e: any) => e.classId === classIdParam);
+    }
+
     return {
-      entries: [
-        { id: 'tt-1', classId: 'cls-10a', subjectId: 'sub-math', teacherId: 'tch-1', roomId: 'rm-101', day: 'MONDAY', period: 1, subject: { name: 'Mathematics' }, teacher: { name: 'Rahul Sharma' }, room: { roomName: 'Classroom 101' } },
-        { id: 'tt-2', classId: 'cls-10a', subjectId: 'sub-phy', teacherId: 'tch-2', roomId: 'rm-101', day: 'TUESDAY', period: 1, subject: { name: 'Physics' }, teacher: { name: 'Sunita Verma' }, room: { roomName: 'Classroom 101' } },
-        { id: 'tt-3', classId: 'cls-10a', subjectId: 'sub-chem', teacherId: 'tch-3', roomId: 'rm-101', day: 'WEDNESDAY', period: 1, subject: { name: 'Chemistry' }, teacher: { name: 'Dr. Rajesh Gupta' }, room: { roomName: 'Classroom 101' } },
-        { id: 'tt-4', classId: 'cls-10a', subjectId: 'sub-eng', teacherId: 'tch-4', roomId: 'rm-101', day: 'THURSDAY', period: 1, subject: { name: 'English Literature' }, teacher: { name: 'Anita Roy' }, room: { roomName: 'Classroom 101' } },
-        { id: 'tt-5', classId: 'cls-10a', subjectId: 'sub-cs', teacherId: 'tch-5', roomId: 'rm-101', day: 'FRIDAY', period: 1, subject: { name: 'Computer Science' }, teacher: { name: 'Vikramaditya Rao' }, room: { roomName: 'Classroom 101' } }
-      ],
+      entries: allEntries,
       conflicts: []
     };
   }
 
-  if (normalizedUrl === '/timetable/generate') {
-    return {
-      message: 'Successfully generated 30 timetable slots across classes.',
-      generatedCount: 30,
-      conflicts: []
-    };
+  if (normalizedUrl.startsWith('/timetable/')) {
+    const slotId = normalizedUrl.replace('/timetable/', '');
+
+    if (normalizedUrl === '/timetable/generate') {
+      const freshEntries = generateDefaultTimetables();
+      saveStoredTimetable(freshEntries);
+      return {
+        message: 'Successfully generated 150 timetable slots across all classes.',
+        generatedCount: freshEntries.length,
+        conflicts: []
+      };
+    }
+
+    if (method === 'PUT') {
+      let allEntries = getStoredTimetable();
+      const existingIdx = allEntries.findIndex((e: any) => e.id === slotId);
+      const { classId, day, period, subjectId, teacherId, roomId } = data || {};
+
+      const subject = subjectsList.find(s => s.id === subjectId) || subjectsList[0];
+      const teacher = teachersList.find(t => t.id === teacherId) || teachersList[0];
+      const room = roomsList.find(r => r.id === roomId) || roomsList[0];
+
+      if (existingIdx !== -1) {
+        allEntries[existingIdx] = {
+          ...allEntries[existingIdx],
+          ...(classId && { classId }),
+          ...(day && { day }),
+          ...(period && { period: Number(period) }),
+          ...(subjectId && { subjectId, subject }),
+          ...(teacherId && { teacherId, teacher }),
+          ...(roomId && { roomId, room })
+        };
+        saveStoredTimetable(allEntries);
+        return allEntries[existingIdx];
+      }
+    }
   }
 
   // Students

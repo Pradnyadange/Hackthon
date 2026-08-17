@@ -37,6 +37,37 @@ export class TimetableController {
     }
   }
 
+  public static async create(req: Request, res: Response) {
+    try {
+      const { classId, day, period, subjectId, teacherId, roomId } = req.body;
+      if (!classId || !day || !period || !subjectId || !teacherId || !roomId) {
+        return res.status(400).json({ message: 'Missing required slot fields: classId, day, period, subjectId, teacherId, roomId' });
+      }
+
+      const existing = await prisma.timetableEntry.findFirst({
+        where: { classId, day, period: Number(period) }
+      });
+
+      let entry;
+      if (existing) {
+        entry = await prisma.timetableEntry.update({
+          where: { id: existing.id },
+          data: { subjectId, teacherId, roomId },
+          include: { class: true, subject: true, teacher: true, room: true }
+        });
+      } else {
+        entry = await prisma.timetableEntry.create({
+          data: { classId, day, period: Number(period), subjectId, teacherId, roomId },
+          include: { class: true, subject: true, teacher: true, room: true }
+        });
+      }
+
+      return res.status(201).json(entry);
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  }
+
   public static async generate(req: Request, res: Response) {
     try {
       const result = await TimetableGeneratorService.generateTimetable();
